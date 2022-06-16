@@ -8,8 +8,6 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 class NhopTraverser {
 
@@ -20,12 +18,14 @@ class NhopTraverser {
     private static File   logFile;
     private static String execModeStr;
     private static String maxHopStr;
-    private static String targetRelationship;
+    private static String relType;
     private static String targetLabel;
     private static String hdnLabel;
+
     public static void main(String... args) {
 
         parseArgs(args);
+
         int hop = Integer.parseInt(maxHopStr);
 
         DatabaseManagementService dbms = new DatabaseManagementServiceBuilder(dbDir)
@@ -40,13 +40,14 @@ class NhopTraverser {
 
         GraphDatabaseService neo4j = dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
 
-        putHDNLabel(neo4j, hdnLabel);
+        deleteHDNLabel(neo4j, hdnLabel, relType);
+        putHDNLabel(neo4j, hdnLabel, relType);
 
         try (Transaction tx = neo4j.beginTx()) {
 
             for (int i = 1; i <= hop; i++) {
 
-                traverse(neo4j, i, hdnLabel);
+                traverse(neo4j, hdnLabel, relType, hop);
 
             }
 
@@ -56,20 +57,27 @@ class NhopTraverser {
 
     }
 
-    private static void traverse(GraphDatabaseService neo4j, int n, String hdnLabel) {
+    private static void traverse(
+            GraphDatabaseService neo4j,
+            String               hdnLabel,
+            String               relType,
+            int                  n
+    ) {
 
         try (Transaction tx = neo4j.beginTx()) {
 
-            String match   = "MATCH (n:$hdnLabel)-[:KNOWS*$n]->(m) ";
-            String return_ = "RETURN '$hdnLabel' in Labels(m) AS isHDN, COUNT(*) AS cnt;";
-            Map<String, Object> param = new HashMap<>(){{
+            String match   = String.format(
+                    "MATCH (n:%s)-[:%s*%d]->(m) ",
+                    hdnLabel,
+                    relType,
+                    n
+            );
+            String return_ = String.format(
+                    "RETURN '%s' in Labels(m) AS isHDN, COUNT(*) AS cnt;",
+                    hdnLabel
+            );
 
-                put("hdnLabel", hdnLabel);
-                put("n",        n);
-
-            }};
-
-            tx.execute(match + return_, param);
+            tx.execute(match + return_);
 
             tx.commit();
 
@@ -77,7 +85,28 @@ class NhopTraverser {
 
     }
 
-    private static void putHDNLabel(GraphDatabaseService neo4j, String label) {
+    private static void deleteHDNLabel(GraphDatabaseService neo4j, String hdnLabel, String relType) {
+
+        try (Transaction tx = neo4j.beginTx()) {
+
+            String match  = String.format(
+                    "MATCH (n:%s) ",
+                    hdnLabel
+            );
+            String delete = String.format(
+                    "DELETE n:%s;",
+                    hdnLabel
+            );
+
+            tx.execute(match + delete);
+
+            tx.commit();
+
+        }
+
+    }
+
+    private static void putHDNLabel(GraphDatabaseService neo4j, String hdnLabel, String relType) {
 
         try (Transaction tx = neo4j.beginTx()) {
 
@@ -86,17 +115,21 @@ class NhopTraverser {
             Result personNum = tx.execute(match1 + return1);
 
             String match2  = "MATCH (n:Person) ";
-            String with2   = "WITH SIZE((n)-[:KNOWS]->()) AS degree, n, cnt ";
+            String with2   = String.format(
+                    "WITH SIZE((n)-[:%s]->()) AS degree, n, cnt ",
+                    relType
+            );
             String orderby = "ORDER BY degree DESC ";
-            String with3   = "LIMIT $hdnNum ";
-            String set     = "SET n:$label AS hdn;";
-            Result hdns    = tx.execute(match2 + with2 + orderby + with3 + set);
-            Map<String, Object> param = new HashMap<>(){{
+            String with3   = String.format(
+                    "LIMIT %d ",
+                    (Integer) personNum.next().get("cnt")
+            );
+            String set     = String.format(
+                    "SET n:%s;",
+                    hdnLabel
+            );
 
-                put("hdnNum", personNum.next().get("cnt"));
-                put("label",  label);
-
-            }};
+            tx.execute(match2 + with2 + orderby + with3 + set);
 
             tx.commit();
 
@@ -130,14 +163,14 @@ class NhopTraverser {
 
         if (args.length != ARG_NUM) printUsage();
 
-        dbDir               = new File(args[0]);
-        confFile            = new File(args[1]);
-        logFile             = new File(args[2]);
-        execModeStr         = args[3];
-        maxHopStr           = args[4];
-        targetRelationship  = args[5];
-        targetLabel         = args[6];
-        hdnLabel            = args[7];
+        dbDir       = new File(args[0]);
+        confFile    = new File(args[1]);
+        logFile     = new File(args[2]);
+        execModeStr = args[3];
+        maxHopStr   = args[4];
+        relType     = args[5];
+        targetLabel = args[6];
+        hdnLabel    = args[7];
 
         // 1st Arg if (! dbDir.exists()) { }
         // 2nd Arg if (! confFile.exists()) { }
@@ -164,7 +197,7 @@ class NhopTraverser {
         }
 
         // 6th Arg
-        switch (targetRelationship) {
+        switch (relType) {
 
             case "KNOWS":
             case "REPLY_TO": break;
