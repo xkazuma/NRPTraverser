@@ -122,7 +122,7 @@ class NhopTraverser {
             String orderby = "ORDER BY degree DESC ";
             String with3   = String.format(
                     "LIMIT %d ",
-                    (Integer) personNum.next().get("cnt")
+                    (Long) personNum.next().get("cnt")
             );
             String set     = String.format(
                     "SET n:%s;",
