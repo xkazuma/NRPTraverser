@@ -40,7 +40,7 @@ class NhopTraverser {
 
         GraphDatabaseService neo4j = dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
 
-        deleteHDNLabel(neo4j, hdnLabel, relType);
+        removeHDNLabel(neo4j, hdnLabel, relType);
         putHDNLabel(neo4j, hdnLabel, relType);
 
         try (Transaction tx = neo4j.beginTx()) {
@@ -85,7 +85,7 @@ class NhopTraverser {
 
     }
 
-    private static void deleteHDNLabel(GraphDatabaseService neo4j, String hdnLabel, String relType) {
+    private static void removeHDNLabel(GraphDatabaseService neo4j, String hdnLabel, String relType) {
 
         try (Transaction tx = neo4j.beginTx()) {
 
@@ -93,12 +93,12 @@ class NhopTraverser {
                     "MATCH (n:%s) ",
                     hdnLabel
             );
-            String delete = String.format(
-                    "DELETE n:%s;",
+            String remove = String.format(
+                    "REMOVE n:%s;",
                     hdnLabel
             );
 
-            tx.execute(match + delete);
+            tx.execute(match + remove);
 
             tx.commit();
 
