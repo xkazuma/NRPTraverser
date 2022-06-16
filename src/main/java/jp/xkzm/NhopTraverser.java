@@ -11,7 +11,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-class NhopTraversar {
+class NhopTraverser {
 
     private final static int ARG_NUM = 8;
 
