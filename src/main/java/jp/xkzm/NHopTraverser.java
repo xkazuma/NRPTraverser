@@ -132,12 +132,12 @@ class NHopTraverser {
     ) {
 
         StringBuilder sb            = new StringBuilder();
-        String        templateMatch = "MATCH (n:%s)-[:%s]->(%s) ";
+        String        templateMatch = "MATCH (%s)-[:%s]->(%s) ";
         String        templateWhere = "WHERE isHDN%d = False ";
         String        templateWith  = "WITH '%s' in Labels(%s) AS isHDN%d, %s "; // hdnLabel, m + i, i, m + i
         String        queryVarM     = "m" + 1;
 
-        if (2 < n) {
+        if (1 < n) {
 
             sb.append(String.format(
                     "MATCH (n:%s)-[:%s]->(%s)",
@@ -153,26 +153,31 @@ class NHopTraverser {
                     queryVarM
             ));
 
+            String queryVarMNext;
             for (int i = 2; i <= n; i++) {
-                queryVarM = "m" + i;
+
+                queryVarMNext = "m" + i;
 
                 sb.append(String.format(
                         templateMatch,
-                        hdnLabel,
+                        queryVarM,
                         relType,
-                        queryVarM
+                        hdnLabel,
+                        queryVarMNext
                 ));
                 sb.append(String.format(
                         templateWhere,
-                        i
+                        i - 1
                 ));
                 sb.append(String.format(
                         templateWith,
                         hdnLabel,
-                        queryVarM,
+                        queryVarMNext,
                         i,
-                        queryVarM
+                        queryVarMNext
                 ));
+
+                queryVarM = queryVarMNext;
 
             }
 
