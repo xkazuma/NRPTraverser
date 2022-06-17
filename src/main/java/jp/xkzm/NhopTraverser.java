@@ -47,7 +47,15 @@ class NhopTraverser {
 
             removeHDNLabel(tx, hdnLabel);
 
+        }
+
+        try (Transaction tx = neo4j.beginTx()) {
+
             putHDNLabel(tx, hdnLabel, relType, hdnRatio);
+
+        }
+
+        try (Transaction tx = neo4j.beginTx()) {
 
             for (int i = 1; i <= hop; i++) {
 
@@ -115,7 +123,7 @@ class NhopTraverser {
         try (tx) {
 
             String match1    = "MATCH (n:Person) ";
-            String return1   = "RETURN COUNT(*) AS cnt ";
+            String return1   = "RETURN COUNT(*) AS cnt;";
             Result personNum = tx.execute(match1 + return1);
 
             String match2  = "MATCH (n:Person) ";
