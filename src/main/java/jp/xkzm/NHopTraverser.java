@@ -162,7 +162,6 @@ class NHopTraverser {
                         templateMatch,
                         queryVarM,
                         relType,
-                        hdnLabel,
                         queryVarMNext
                 ));
                 sb.append(String.format(
