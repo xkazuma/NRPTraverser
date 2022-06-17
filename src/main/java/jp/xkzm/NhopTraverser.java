@@ -11,7 +11,7 @@ import java.io.File;
 
 class NhopTraverser {
 
-    private final static int ARG_NUM = 8;
+    private final static int ARG_NUM = 9;
 
     private static File   dbDir;
     private static File   confFile;
@@ -21,12 +21,14 @@ class NhopTraverser {
     private static String relType;
     private static String targetLabel;
     private static String hdnLabel;
+    private static String hdnRatioStr;
 
     public static void main(String... args) {
 
         parseArgs(args);
 
-        int hop = Integer.parseInt(maxHopStr);
+        int    hop      = Integer.parseInt(maxHopStr);
+        double hdnRatio = Double.parseDouble(hdnRatioStr);
 
         DatabaseManagementService dbms = new DatabaseManagementServiceBuilder(dbDir)
                 .setConfig(GraphDatabaseSettings.pagecache_memory,                   "1G")
@@ -40,14 +42,16 @@ class NhopTraverser {
 
         GraphDatabaseService neo4j = dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
 
-        removeHDNLabel(neo4j, hdnLabel, relType);
-        putHDNLabel(neo4j, hdnLabel, relType);
 
         try (Transaction tx = neo4j.beginTx()) {
 
+            removeHDNLabel(tx, hdnLabel);
+
+            putHDNLabel(tx, hdnLabel, relType, hdnRatio);
+
             for (int i = 1; i <= hop; i++) {
 
-                traverse(neo4j, hdnLabel, relType, hop);
+                traverse(tx, hdnLabel, relType, hop);
 
             }
 
@@ -58,13 +62,13 @@ class NhopTraverser {
     }
 
     private static void traverse(
-            GraphDatabaseService neo4j,
-            String               hdnLabel,
-            String               relType,
-            int                  n
+            Transaction tx,
+            String      hdnLabel,
+            String      relType,
+            int         n
     ) {
 
-        try (Transaction tx = neo4j.beginTx()) {
+        try (tx) {
 
             String match   = String.format(
                     "MATCH (n:%s)-[:%s*%d]->(m) ",
@@ -85,9 +89,9 @@ class NhopTraverser {
 
     }
 
-    private static void removeHDNLabel(GraphDatabaseService neo4j, String hdnLabel, String relType) {
+    private static void removeHDNLabel(Transaction tx, String hdnLabel) {
 
-        try (Transaction tx = neo4j.beginTx()) {
+        try (tx) {
 
             String match  = String.format(
                     "MATCH (n:%s) ",
@@ -106,9 +110,9 @@ class NhopTraverser {
 
     }
 
-    private static void putHDNLabel(GraphDatabaseService neo4j, String hdnLabel, String relType) {
+    private static void putHDNLabel(Transaction tx, String hdnLabel, String relType, double hdnRatio) {
 
-        try (Transaction tx = neo4j.beginTx()) {
+        try (tx) {
 
             String match1    = "MATCH (n:Person) ";
             String return1   = "RETURN COUNT(*) AS cnt ";
@@ -116,20 +120,21 @@ class NhopTraverser {
 
             String match2  = "MATCH (n:Person) ";
             String with2   = String.format(
-                    "WITH SIZE((n)-[:%s]->()) AS degree, n, cnt ",
+                    "WITH SIZE((n)-[:%s]->()) AS degree, n ",
                     relType
             );
             String orderby = "ORDER BY degree DESC ";
-            String with3   = String.format(
+            int limitNum = (int) ((double) personNum.next().get("cnt") * hdnRatio);
+            String limit   = String.format(
                     "LIMIT %d ",
-                    (Long) personNum.next().get("cnt")
+                    limitNum
             );
             String set     = String.format(
                     "SET n:%s;",
                     hdnLabel
             );
 
-            tx.execute(match2 + with2 + orderby + with3 + set);
+            tx.execute(match2 + with2 + orderby + limit + set);
 
             tx.commit();
 
@@ -171,6 +176,7 @@ class NhopTraverser {
         relType     = args[5];
         targetLabel = args[6];
         hdnLabel    = args[7];
+        hdnRatioStr = args[8];
 
         // 1st Arg if (! dbDir.exists()) { }
         // 2nd Arg if (! confFile.exists()) { }
@@ -228,6 +234,18 @@ class NhopTraverser {
             default:
                 System.err.println("The 8th argument should be a name of HDNs: (HDN20 | HDN10 | HDN05 | HDN01).");
                 System.exit(-1);
+
+        }
+
+        // 9th Arg
+        try {
+
+            Double.parseDouble(maxHopStr);
+
+        } catch (NumberFormatException nfe) {
+
+            System.err.println("The 9th argument should be double-typed value meaning HDN ratio.");
+            System.exit(-1);
 
         }
 
