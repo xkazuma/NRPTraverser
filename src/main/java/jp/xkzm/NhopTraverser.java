@@ -132,7 +132,7 @@ class NhopTraverser {
                     relType
             );
             String orderby = "ORDER BY degree DESC ";
-            int limitNum = (int) ((double) personNum.next().get("cnt") * hdnRatio);
+            int limitNum = (int) ((Long) personNum.next().get("cnt") * hdnRatio);
             String limit   = String.format(
                     "LIMIT %d ",
                     limitNum
