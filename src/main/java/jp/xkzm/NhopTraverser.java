@@ -73,9 +73,9 @@ class NhopTraverser {
 
 
                 logger.info(String.format(
-                        "Consumed time at %d-hop: %f",
+                        "Consumed time at %d-hop [msec.]: %f",
                         i,
-                        (endAtNhop - startAtNhop) / 1000.0
+                        (endAtNhop - startAtNhop) / 1000.0 / 1000.
                 ));
 
             }
