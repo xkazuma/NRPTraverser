@@ -16,7 +16,7 @@ class NhopTraverser {
 
     private static final Logger logger = LoggerFactory.getLogger(NhopTraverser.class);
 
-    private final static int ARG_NUM = 9;
+    private final static int ARG_NUM = 10;
 
     private static File   dbDir;
     private static File   confFile;
@@ -27,13 +27,15 @@ class NhopTraverser {
     private static String targetLabel;
     private static String hdnLabel;
     private static String hdnRatioStr;
+    private static String isCompressedStr;
 
     public static void main(String... args) {
 
         parseArgs(args);
 
-        int    hop      = Integer.parseInt(maxHopStr);
-        double hdnRatio = Double.parseDouble(hdnRatioStr);
+        int    hop          = Integer.parseInt(maxHopStr);
+        double hdnRatio     = Double.parseDouble(hdnRatioStr);
+        boolean isCompressed = Boolean.parseBoolean(isCompressedStr);
 
         DatabaseManagementService dbms = new DatabaseManagementServiceBuilder(dbDir)
                 .setConfig(GraphDatabaseSettings.pagecache_memory,                   "1G")
@@ -65,17 +67,18 @@ class NhopTraverser {
             for (int i = 1; i <= hop; i++) {
 
 
-                long startAtNhop = System.nanoTime();
+                long startAtNHop = System.nanoTime();
 
-                traverse(tx, hdnLabel, relType, i);
+                if (isCompressed) traverseWithoutHDN(tx, hdnLabel, relType, i);
+                else              traverse(tx, hdnLabel, relType, i);
 
-                long endAtNhop = System.nanoTime();
+                long endAtNHop = System.nanoTime();
 
 
                 logger.info(String.format(
                         "Consumed time at %d-hop [msec.]: %f",
                         i,
-                        (endAtNhop - startAtNhop) / 1000.0 / 1000.
+                        (endAtNHop - startAtNHop) / 1000.0 / 1000.
                 ));
 
             }
@@ -112,8 +115,97 @@ class NhopTraverser {
 
             logger.info(String.format(
                     "Nhop: %s\tisHDN: %s\tcnt: %d",
+                    (String)  row.get("Nhop"),
+                    (Boolean) row.get("isHDN"),
+                    (Integer) row.get("cnt")
+            ));
+
+        }
+
+    }
+
+    private static void traverseWithoutHDN(
+            Transaction tx,
+            String      hdnLabel,
+            String      relType,
+            int         n
+    ) {
+
+        StringBuilder sb            = new StringBuilder();
+        String        templateMatch = "MATCH (n:%s)-[:%s]->(%s) ";
+        String        templateWhere = "WHERE isHDN%d = False ";
+        String        templateWith  = "WITH '%s' in Labels(%s) AS isHDN%d, %s "; // hdnLabel, m + i, i, m + i
+        String        queryVarM     = "m" + 1;
+
+        if (2 < n) {
+
+            sb.append(String.format(
+                    "MATCH (n:%s)-[:%s]->(%s)",
+                    hdnLabel,
+                    relType,
+                    queryVarM
+            ));
+            sb.append(String.format(
+                    templateWith,
+                    hdnLabel,
+                    queryVarM,
+                    1,
+                    queryVarM
+            ));
+
+            for (int i = 2; i <= n; i++) {
+                queryVarM = "m" + i;
+
+                sb.append(String.format(
+                        templateMatch,
+                        hdnLabel,
+                        relType,
+                        queryVarM
+                ));
+                sb.append(String.format(
+                        templateWhere,
+                        i
+                ));
+                sb.append(String.format(
+                        templateWith,
+                        hdnLabel,
+                        queryVarM,
+                        i,
+                        queryVarM
+                ));
+
+            }
+
+        } else if (n == 1) {
+
+            queryVarM = "m" + 1;
+            sb.append(String.format(
+                    "MATCH (n:%s)-[:%s]->(%s)",
+                    hdnLabel,
+                    relType,
+                    queryVarM
+            ));
+
+        }
+
+        sb.append(String.format(
+                "RETURN '%d-hop' AS Nhop, '%s' in Labels(%s) AS isHDN, COUNT(DISTINCT %s) AS cnt;",
+                n,
+                hdnLabel,
+                queryVarM,
+                queryVarM
+        ));
+
+        Result result = tx.execute(sb.toString());
+
+        while (result.hasNext()) {
+
+            Map<String, Object> row = result.next();
+
+            logger.info(String.format(
+                    "Nhop: %s\tisHDN: %s\tcnt: %d",
                     (String) row.get("Nhop"),
-                    String.valueOf((Boolean) row.get("isHDN")),
+                    (Boolean) row.get("isHDN"),
                     (Long) row.get("cnt")
             ));
 
@@ -196,15 +288,16 @@ class NhopTraverser {
 
         if (args.length != ARG_NUM) printUsage();
 
-        dbDir       = new File(args[0]);
-        confFile    = new File(args[1]);
-        logFile     = new File(args[2]);
-        execModeStr = args[3];
-        maxHopStr   = args[4];
-        relType     = args[5];
-        targetLabel = args[6];
-        hdnLabel    = args[7];
-        hdnRatioStr = args[8];
+        dbDir           = new File(args[0]);
+        confFile        = new File(args[1]);
+        logFile         = new File(args[2]);
+        execModeStr     = args[3];
+        maxHopStr       = args[4];
+        relType         = args[5];
+        targetLabel     = args[6];
+        hdnLabel        = args[7];
+        hdnRatioStr     = args[8];
+        isCompressedStr = args[8];
 
         // 1st Arg if (! dbDir.exists()) { }
         // 2nd Arg if (! confFile.exists()) { }
@@ -273,6 +366,18 @@ class NhopTraverser {
         } catch (NumberFormatException nfe) {
 
             System.err.println("The 9th argument should be double-typed value meaning HDN ratio.");
+            System.exit(-1);
+
+        }
+
+        // 10th Arg
+        try {
+
+            Boolean.parseBoolean(isCompressedStr);
+
+        } catch (NumberFormatException nfe) {
+
+            System.err.println("The 10th argument should be boolean-typed value meaning whether or not HDN-based compression is enabled.");
             System.exit(-1);
 
         }
