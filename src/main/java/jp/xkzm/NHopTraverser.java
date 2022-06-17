@@ -33,8 +33,8 @@ class NHopTraverser {
 
         parseArgs(args);
 
-        int    hop          = Integer.parseInt(maxHopStr);
-        double hdnRatio     = Double.parseDouble(hdnRatioStr);
+        int    hop           = Integer.parseInt(maxHopStr);
+        double hdnRatio      = Double.parseDouble(hdnRatioStr);
         boolean isCompressed = Boolean.parseBoolean(isCompressedStr);
 
         DatabaseManagementService dbms = new DatabaseManagementServiceBuilder(dbDir)
@@ -200,6 +200,7 @@ class NHopTraverser {
                 queryVarM,
                 queryVarM
         ));
+
         logger.debug(sb.toString());
 
         Result result = tx.execute(sb.toString());
@@ -303,7 +304,7 @@ class NHopTraverser {
         targetLabel     = args[6];
         hdnLabel        = args[7];
         hdnRatioStr     = args[8];
-        isCompressedStr = args[8];
+        isCompressedStr = args[9];
 
         // 1st Arg if (! dbDir.exists()) { }
         // 2nd Arg if (! confFile.exists()) { }
