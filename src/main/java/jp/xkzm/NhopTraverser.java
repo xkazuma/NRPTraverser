@@ -64,13 +64,24 @@ class NhopTraverser {
 
             for (int i = 1; i <= hop; i++) {
 
+
+                long startAtNhop = System.nanoTime();
+
                 traverse(tx, hdnLabel, relType, hop);
+
+                long endAtNhop = System.nanoTime();
+
+
+                logger.info(String.format(
+                        "Consumed time at %d-hop: %f",
+                        i,
+                        (endAtNhop - startAtNhop) / 1000.0
+                ));
 
             }
 
         }
 
-        Runtime r = Runtime.getRuntime();
 
     }
 
