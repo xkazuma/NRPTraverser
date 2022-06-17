@@ -92,36 +92,30 @@ class NhopTraverser {
             int         n
     ) {
 
-        try (tx) {
+        String match   = String.format(
+                "MATCH (n:%s)-[:%s*%d]->(m) ",
+                hdnLabel,
+                relType,
+                n
+        );
+        String return_ = String.format(
+                "RETURN '%d-hop' AS Nhop, '%s' in Labels(m) AS isHDN, COUNT(DISTINCT m) AS cnt;",
+                n,
+                hdnLabel
+        );
 
-            String match   = String.format(
-                    "MATCH (n:%s)-[:%s*%d]->(m) ",
-                    hdnLabel,
-                    relType,
-                    n
-            );
-            String return_ = String.format(
-                    "RETURN '%d-hop' AS Nhop, '%s' in Labels(m) AS isHDN, COUNT(DISTINCT m) AS cnt;",
-                    n,
-                    hdnLabel
-            );
+        Result result = tx.execute(match + return_);
 
-            Result result = tx.execute(match + return_);
+        while (result.hasNext()) {
 
-            while (result.hasNext()) {
+            Map<String, Object> row = result.next();
 
-                Map<String, Object> row = result.next();
-
-                logger.info(String.format(
-                        "Nhop: %s\tisHDN: %s\tcnt: %d",
-                        (String) row.get("Nhop"),
-                        String.valueOf((Boolean) row.get("isHDN")),
-                        (Long) row.get("cnt")
-                ));
-
-            }
-
-            tx.commit();
+            logger.info(String.format(
+                    "Nhop: %s\tisHDN: %s\tcnt: %d",
+                    (String) row.get("Nhop"),
+                    String.valueOf((Boolean) row.get("isHDN")),
+                    (Long) row.get("cnt")
+            ));
 
         }
 
@@ -129,58 +123,50 @@ class NhopTraverser {
 
     private static void removeHDNLabel(Transaction tx, String hdnLabel) {
 
-        try (tx) {
+        String match  = String.format(
+                "MATCH (n:%s) ",
+                hdnLabel
+        );
+        String remove = String.format(
+                "REMOVE n:%s;",
+                hdnLabel
+        );
 
-            String match  = String.format(
-                    "MATCH (n:%s) ",
-                    hdnLabel
-            );
-            String remove = String.format(
-                    "REMOVE n:%s;",
-                    hdnLabel
-            );
+        Result result = tx.execute(match + remove);
 
-            Result result = tx.execute(match + remove);
+        logger.info(result.getNotifications().toString());
 
-            logger.info(result.getNotifications().toString());
-
-            tx.commit();
-
-        }
+        tx.commit();
 
     }
 
     private static void putHDNLabel(Transaction tx, String hdnLabel, String relType, double hdnRatio) {
 
-        try (tx) {
+        String match1    = "MATCH (n:Person) ";
+        String return1   = "RETURN COUNT(*) AS cnt;";
+        Result personNum = tx.execute(match1 + return1);
 
-            String match1    = "MATCH (n:Person) ";
-            String return1   = "RETURN COUNT(*) AS cnt;";
-            Result personNum = tx.execute(match1 + return1);
+        String match2  = "MATCH (n:Person) ";
+        String with2   = String.format(
+                "WITH SIZE((n)-[:%s]->()) AS degree, n ",
+                relType
+        );
+        String orderby = "ORDER BY degree DESC ";
+        int limitNum = (int) ((Long) personNum.next().get("cnt") * hdnRatio);
+        String limit   = String.format(
+                "LIMIT %d ",
+                limitNum
+        );
+        String set     = String.format(
+                "SET n:%s;",
+                hdnLabel
+        );
 
-            String match2  = "MATCH (n:Person) ";
-            String with2   = String.format(
-                    "WITH SIZE((n)-[:%s]->()) AS degree, n ",
-                    relType
-            );
-            String orderby = "ORDER BY degree DESC ";
-            int limitNum = (int) ((Long) personNum.next().get("cnt") * hdnRatio);
-            String limit   = String.format(
-                    "LIMIT %d ",
-                    limitNum
-            );
-            String set     = String.format(
-                    "SET n:%s;",
-                    hdnLabel
-            );
+        Result result = tx.execute(match2 + with2 + orderby + limit + set);
 
-            Result result = tx.execute(match2 + with2 + orderby + limit + set);
+        logger.info(result.getNotifications().toString());
 
-            logger.info(result.getNotifications().toString());
-
-            tx.commit();
-
-        }
+        tx.commit();
 
     }
 
