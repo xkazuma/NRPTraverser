@@ -102,6 +102,7 @@ class NhopTraverser {
             );
             String return_ = String.format(
                     "RETURN '%d-hop' AS Nhop, '%s' in Labels(m) AS isHDN, COUNT(DISTINCT m) AS cnt;",
+                    n,
                     hdnLabel
             );
 
