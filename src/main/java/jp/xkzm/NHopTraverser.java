@@ -200,6 +200,7 @@ class NHopTraverser {
                 queryVarM,
                 queryVarM
         ));
+        logger.debug(sb.toString());
 
         Result result = tx.execute(sb.toString());
 
