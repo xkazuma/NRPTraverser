@@ -6,10 +6,15 @@ import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Map;
 
 class NhopTraverser {
+
+    private final static Logger logger = LoggerFactory.getLogger(NhopTraverser.class);
 
     private final static int ARG_NUM = 9;
 
@@ -85,11 +90,24 @@ class NhopTraverser {
                     n
             );
             String return_ = String.format(
-                    "RETURN '%s' in Labels(m) AS isHDN, COUNT(*) AS cnt;",
+                    "RETURN Id(n) AS nid, '%s' in Labels(m) AS isHDN, COUNT(*) AS cnt;",
                     hdnLabel
             );
 
-            tx.execute(match + return_);
+            Result result = tx.execute(match + return_);
+
+            while (result.hasNext()) {
+
+                Map<String, Object> row = result.next();
+
+                logger.info(String.format(
+                        "nid: %d\tisHDN: %s\tcnt: %d",
+                        (Long) row.get("nid"),
+                        String.valueOf((Boolean) row.get("isHDN")),
+                        (Long) row.get("cnt")
+                ));
+
+            }
 
             tx.commit();
 
@@ -110,7 +128,9 @@ class NhopTraverser {
                     hdnLabel
             );
 
-            tx.execute(match + remove);
+            Result result = tx.execute(match + remove);
+
+            logger.info(result.getNotifications().toString());
 
             tx.commit();
 
@@ -142,7 +162,9 @@ class NhopTraverser {
                     hdnLabel
             );
 
-            tx.execute(match2 + with2 + orderby + limit + set);
+            Result result = tx.execute(match2 + with2 + orderby + limit + set);
+
+            logger.info(result.getNotifications().toString());
 
             tx.commit();
 
