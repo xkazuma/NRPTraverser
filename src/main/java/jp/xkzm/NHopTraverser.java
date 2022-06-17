@@ -12,9 +12,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.Map;
 
-class NhopTraverser {
+class NHopTraverser {
 
-    private static final Logger logger = LoggerFactory.getLogger(NhopTraverser.class);
+    private static final Logger logger = LoggerFactory.getLogger(NHopTraverser.class);
 
     private final static int ARG_NUM = 10;
 
