@@ -90,7 +90,7 @@ class NhopTraverser {
                     n
             );
             String return_ = String.format(
-                    "RETURN Id(n) AS nid, '%s' in Labels(m) AS isHDN, COUNT(*) AS cnt;",
+                    "RETURN '%d-hop' AS Nhop, '%s' in Labels(m) AS isHDN, COUNT(DISTINCT m) AS cnt;",
                     hdnLabel
             );
 
@@ -101,8 +101,8 @@ class NhopTraverser {
                 Map<String, Object> row = result.next();
 
                 logger.info(String.format(
-                        "nid: %d\tisHDN: %s\tcnt: %d",
-                        (Long) row.get("nid"),
+                        "Nhop: %s\tisHDN: %s\tcnt: %d",
+                        (String) row.get("Nhop"),
                         String.valueOf((Boolean) row.get("isHDN")),
                         (Long) row.get("cnt")
                 ));
