@@ -69,11 +69,11 @@ class NHopTraverser {
 
                 long startAtNHop = System.nanoTime();
 
-                if (isCompressed) traverseWithoutHDN(tx, hdnLabel, relType, i);
+                boolean isContinued = true;
+                if (isCompressed) isContinued = traverseWithoutHDN(tx, hdnLabel, relType, i);
                 else              traverse(tx, hdnLabel, relType, i);
 
                 long endAtNHop = System.nanoTime();
-
 
                 logger.info(String.format(
                         "Consumed time at %d-hop [msec.]: %f",
@@ -81,10 +81,11 @@ class NHopTraverser {
                         (endAtNHop - startAtNHop) / 1000.0 / 1000.
                 ));
 
+                if (! isContinued) break;
+
             }
 
         }
-
 
     }
 
@@ -124,7 +125,7 @@ class NHopTraverser {
 
     }
 
-    private static void traverseWithoutHDN(
+    private static boolean traverseWithoutHDN(
             Transaction tx,
             String      hdnLabel,
             String      relType,
@@ -204,7 +205,10 @@ class NHopTraverser {
 
         Result result = tx.execute(sb.toString());
 
+        int rows = 0;
         while (result.hasNext()) {
+
+            rows++;
 
             Map<String, Object> row = result.next();
 
@@ -216,6 +220,9 @@ class NHopTraverser {
             ));
 
         }
+
+        if (rows == 0) return false;
+        else           return true; //continued
 
     }
 
