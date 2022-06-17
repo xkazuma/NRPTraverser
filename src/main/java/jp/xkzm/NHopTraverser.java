@@ -117,7 +117,7 @@ class NHopTraverser {
                     "Nhop: %s\tisHDN: %s\tcnt: %d",
                     (String)  row.get("Nhop"),
                     (Boolean) row.get("isHDN"),
-                    (Integer) row.get("cnt")
+                    (Long)    row.get("cnt")
             ));
 
         }
