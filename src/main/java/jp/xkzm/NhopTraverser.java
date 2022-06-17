@@ -14,7 +14,7 @@ import java.util.Map;
 
 class NhopTraverser {
 
-    private final static Logger logger = LoggerFactory.getLogger(NhopTraverser.class);
+    private static final Logger logger = LoggerFactory.getLogger(NhopTraverser.class);
 
     private final static int ARG_NUM = 9;
 
