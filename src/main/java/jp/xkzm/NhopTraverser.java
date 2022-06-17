@@ -67,7 +67,7 @@ class NhopTraverser {
 
                 long startAtNhop = System.nanoTime();
 
-                traverse(tx, hdnLabel, relType, hop);
+                traverse(tx, hdnLabel, relType, i);
 
                 long endAtNhop = System.nanoTime();
 
