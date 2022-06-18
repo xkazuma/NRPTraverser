@@ -16,12 +16,13 @@ class NHopTraverser {
 
     private static final Logger logger = LoggerFactory.getLogger(NHopTraverser.class);
 
-    private final static int ARG_NUM = 10;
+    private final static int ARG_NUM = 11;
 
     private static File   dbDir;
     private static File   confFile;
     private static File   logFile;
     private static String execModeStr;
+    private static String minHopStr;
     private static String maxHopStr;
     private static String relType;
     private static String targetLabel;
@@ -33,6 +34,7 @@ class NHopTraverser {
 
         parseArgs(args);
 
+        int    minhop        = Integer.parseInt(minHopStr);
         int    hop           = Integer.parseInt(maxHopStr);
         double hdnRatio      = Double.parseDouble(hdnRatioStr);
         boolean isCompressed = Boolean.parseBoolean(isCompressedStr);
@@ -64,7 +66,7 @@ class NHopTraverser {
 
         try (Transaction tx = neo4j.beginTx()) {
 
-            for (int i = 1; i <= hop; i++) {
+            for (int i = minhop; i <= hop; i++) {
 
 
                 long startAtNHop = System.nanoTime();
@@ -306,11 +308,12 @@ class NHopTraverser {
         logFile         = new File(args[2]);
         execModeStr     = args[3];
         maxHopStr       = args[4];
-        relType         = args[5];
-        targetLabel     = args[6];
-        hdnLabel        = args[7];
-        hdnRatioStr     = args[8];
-        isCompressedStr = args[9];
+        maxHopStr       = args[5];
+        relType         = args[6];
+        targetLabel     = args[7];
+        hdnLabel        = args[8];
+        hdnRatioStr     = args[9];
+        isCompressedStr = args[10];
 
         // 1st Arg if (! dbDir.exists()) { }
         // 2nd Arg if (! confFile.exists()) { }
@@ -374,11 +377,23 @@ class NHopTraverser {
         // 9th Arg
         try {
 
-            Double.parseDouble(maxHopStr);
+            Integer.parseInt(minHopStr);
 
         } catch (NumberFormatException nfe) {
 
-            System.err.println("The 9th argument should be double-typed value meaning HDN ratio.");
+            System.err.println("The 9th argument should be integer-typed value meaning to start traversing from $minhop-hop.");
+            System.exit(-1);
+
+        }
+
+        // 10th Arg
+        try {
+
+            Integer.parseInt(maxHopStr);
+
+        } catch (NumberFormatException nfe) {
+
+            System.err.println("The 10th argument should be integer-typed value meaning to end traversing at $maxhop-hop.");
             System.exit(-1);
 
         }
@@ -390,7 +405,7 @@ class NHopTraverser {
 
         } catch (NumberFormatException nfe) {
 
-            System.err.println("The 10th argument should be boolean-typed value meaning whether or not HDN-based compression is enabled.");
+            System.err.println("The 11th argument should be boolean-typed value meaning whether or not HDN-based compression is enabled.");
             System.exit(-1);
 
         }
