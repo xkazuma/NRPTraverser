@@ -50,7 +50,6 @@
     <orderEntry type="library" name="Maven: org.parboiled:parboiled-core:1.2.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.shiro:shiro-core:1.4.1" level="project" />
     <orderEntry type="library" name="Maven: org.apache.shiro:shiro-lang:1.4.1" level="project" />
-    <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.21" level="project" />
     <orderEntry type="library" name="Maven: org.apache.shiro:shiro-cache:1.4.1" level="project" />
     <orderEntry type="library" name="Maven: org.apache.shiro:shiro-crypto-hash:1.4.1" level="project" />
     <orderEntry type="library" name="Maven: org.apache.shiro:shiro-crypto-core:1.4.1" level="project" />
@@ -113,5 +112,7 @@
     <orderEntry type="library" name="Maven: org.jctools:jctools-core:2.1.2" level="project" />
     <orderEntry type="library" name="Maven: org.neo4j:neo4j-graphdb-api:4.0.0" level="project" />
     <orderEntry type="library" name="Maven: org.neo4j:neo4j-resource:4.0.0" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:slf4j-simple:1.6.1" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.6.1" level="project" />
   </component>
 </module>

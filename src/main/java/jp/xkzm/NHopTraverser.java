@@ -307,7 +307,7 @@ class NHopTraverser {
         confFile        = new File(args[1]);
         logFile         = new File(args[2]);
         execModeStr     = args[3];
-        maxHopStr       = args[4];
+        minHopStr       = args[4];
         maxHopStr       = args[5];
         relType         = args[6];
         targetLabel     = args[7];
