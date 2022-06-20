@@ -10,6 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Map;
 
 class NHopTraverser {
@@ -38,14 +41,8 @@ class NHopTraverser {
         int    hop           = Integer.parseInt(maxHopStr);
         double hdnRatio      = Double.parseDouble(hdnRatioStr);
         boolean isCompressed = Boolean.parseBoolean(isCompressedStr);
-
         DatabaseManagementService dbms = new DatabaseManagementServiceBuilder(dbDir)
-                .setConfig(GraphDatabaseSettings.pagecache_memory,                   "1G")
-                .setConfig(GraphDatabaseSettings.pagecache_warmup_enabled,           false)
-                .setConfig(GraphDatabaseSettings.tx_state_off_heap_block_cache_size, 16)
-                .setConfig(GraphDatabaseSettings.force_small_id_cache,               false)
-                .setConfig(GraphDatabaseSettings.query_cache_size,                   16)
-                .setConfig(GraphDatabaseSettings.pagecache_warmup_prefetch,          false)
+                .loadPropertiesFromFile(confFile.getAbsolutePath())
                 .build();
         registerShutdownHook(dbms);
 
@@ -304,7 +301,8 @@ class NHopTraverser {
         if (args.length != ARG_NUM) printUsage();
 
         dbDir           = new File(args[0]);
-        confFile        = new File(args[1]);
+        // URL uri         = NHopTraverser.class.getClass().getResource(args[1]);
+        // confFile        = new File(uri.toURI());
         logFile         = new File(args[2]);
         execModeStr     = args[3];
         minHopStr       = args[4];
@@ -317,6 +315,22 @@ class NHopTraverser {
 
         // 1st Arg if (! dbDir.exists()) { }
         // 2nd Arg if (! confFile.exists()) { }
+        URL uri         = NHopTraverser.class.getResource(args[1]);
+        try {
+
+            confFile = new File(uri.toURI());
+            if (! confFile.exists()) {
+
+                System.err.println("The 3th argument should be a path for config file.");
+                System.exit(-1);
+
+            }
+
+        } catch (URISyntaxException use) {
+
+            use.printStackTrace();
+
+        }
         // 3rd Arg if (! logFile.exists()) { }
         // 4th Arg
         switch (execModeStr) {
