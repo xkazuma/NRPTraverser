@@ -317,8 +317,9 @@ class NHopTraverser {
         // 2nd Arg if (! confFile.exists()) { }
         try {
 
-            URL uri  = NHopTraverser.class.getResource(args[1]);
-            confFile = new File(uri.toURI());
+            URL url  = NHopTraverser.class.getResource(args[1]);
+            logger.info(url.toString());
+            confFile = new File(url.toURI());
             if (! confFile.exists()) {
 
                 System.err.println("The 3th argument should be a path for config file.");
