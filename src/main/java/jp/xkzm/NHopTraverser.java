@@ -317,8 +317,7 @@ class NHopTraverser {
         // 2nd Arg if (! confFile.exists()) { }
         try {
 
-            URL url  = NHopTraverser.class.getResource(args[1]);
-            logger.info(url.toString());
+            URL url  = NHopTraverser.class.getClassLoader().getResource(args[1]);
             confFile = new File(url.toURI());
             if (! confFile.exists()) {
 
