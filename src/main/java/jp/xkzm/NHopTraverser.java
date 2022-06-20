@@ -315,9 +315,9 @@ class NHopTraverser {
 
         // 1st Arg if (! dbDir.exists()) { }
         // 2nd Arg if (! confFile.exists()) { }
-        URL uri         = NHopTraverser.class.getResource(args[1]);
         try {
 
+            URL uri  = NHopTraverser.class.getResource(args[1]);
             confFile = new File(uri.toURI());
             if (! confFile.exists()) {
 
