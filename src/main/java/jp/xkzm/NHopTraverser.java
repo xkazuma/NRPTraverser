@@ -3,9 +3,10 @@ package jp.xkzm;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Result;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,7 @@ class NHopTraverser {
 
     private static final Logger logger = LoggerFactory.getLogger(NHopTraverser.class);
 
-    private final static int ARG_NUM = 11;
+    private final static int ARG_NUM = 12;
 
     private static File   dbDir;
     private static File   confFile;
@@ -32,15 +33,17 @@ class NHopTraverser {
     private static String hdnLabel;
     private static String hdnRatioStr;
     private static String isCompressedStr;
+    private static String byCypherStr;
 
     public static void main(String... args) {
 
         parseArgs(args);
 
-        int    minhop        = Integer.parseInt(minHopStr);
-        int    hop           = Integer.parseInt(maxHopStr);
-        double hdnRatio      = Double.parseDouble(hdnRatioStr);
+        int     minhop       = Integer.parseInt(minHopStr);
+        int     hop          = Integer.parseInt(maxHopStr);
+        double  hdnRatio     = Double.parseDouble(hdnRatioStr);
         boolean isCompressed = Boolean.parseBoolean(isCompressedStr);
+        boolean byCypher     = Boolean.parseBoolean(byCypherStr);
         DatabaseManagementService dbms = new DatabaseManagementServiceBuilder(dbDir)
                 .loadPropertiesFromFile(confFile.getAbsolutePath())
                 .build();
@@ -69,7 +72,7 @@ class NHopTraverser {
                 long startAtNHop = System.nanoTime();
 
                 boolean isContinued = true;
-                if (isCompressed) isContinued = traverseWithoutHDN(tx, hdnLabel, relType, i);
+                if (isCompressed) isContinued = traverseWithoutHDN(tx, hdnLabel, relType, i, byCypher);
                 else              traverse(tx, hdnLabel, relType, i);
 
                 long endAtNHop = System.nanoTime();
@@ -125,6 +128,41 @@ class NHopTraverser {
     }
 
     private static boolean traverseWithoutHDN(
+            Transaction tx,
+            String      hdnLabel,
+            String      relType,
+            int         n,
+            boolean     byCypher
+    ) {
+
+        if (byCypher) return traverseWithoutHDNByCypher(tx, hdnLabel, relType, n);
+        else          return traverseWithoutHDNByTraversalAPI(tx, hdnLabel, relType, n);
+
+    }
+
+    private static boolean traverseWithoutHDNByTraversalAPI(
+            Transaction tx,
+            String      hdnLabel,
+            String      relType,
+            int         n
+    ) {
+
+        Iterable<Node> nodes = (Iterable<Node>)tx.findNodes(Label.label(hdnLabel));
+
+        Iterable<Node> description = tx.traversalDescription()
+                .breadthFirst()
+                .evaluator(Evaluators.atDepth(1))
+                .relationships(RelationshipType.withName(relType))
+                .traverse()
+                .nodes();
+
+        logger.info(description.toString());
+
+        return false;
+
+    }
+
+    private static boolean traverseWithoutHDNByCypher(
             Transaction tx,
             String      hdnLabel,
             String      relType,
@@ -312,6 +350,7 @@ class NHopTraverser {
         hdnLabel        = args[8];
         hdnRatioStr     = args[9];
         isCompressedStr = args[10];
+        byCypherStr     = args[11];
 
         // 1st Arg if (! dbDir.exists()) { }
         // 2nd Arg if (! confFile.exists()) { }
@@ -420,6 +459,18 @@ class NHopTraverser {
         } catch (NumberFormatException nfe) {
 
             System.err.println("The 11th argument should be boolean-typed value meaning whether or not HDN-based compression is enabled.");
+            System.exit(-1);
+
+        }
+
+        // 12th Arg
+        try {
+
+            Boolean.parseBoolean(byCypherStr);
+
+        } catch (NumberFormatException nfe) {
+
+            System.err.println("The 12th argument should be boolean-typed value meaning whether or not queries use Cypher.");
             System.exit(-1);
 
         }
