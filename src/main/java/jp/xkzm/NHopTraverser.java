@@ -4,14 +4,11 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.Evaluators;
-import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Map;
@@ -147,16 +144,16 @@ class NHopTraverser {
             int         n
     ) {
 
-        Iterable<Node> nodes = (Iterable<Node>)tx.findNodes(Label.label(hdnLabel));
-
-        Iterable<Node> description = tx.traversalDescription()
+         Iterable<Node> nodes = tx.traversalDescription()
                 .breadthFirst()
                 .evaluator(Evaluators.atDepth(1))
                 .relationships(RelationshipType.withName(relType))
                 .traverse()
                 .nodes();
 
-        logger.info(description.toString());
+        nodes.iterator().forEachRemaining(node  -> {
+            logger.info(node.toString());
+        });
 
         return false;
 
