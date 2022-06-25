@@ -322,13 +322,13 @@ class NHopTraverser {
 
         String usage =
                 "Usage: mvn exec:java -Dexec.args=\"" +
-                        "'1st arg: Path to Neo4j DB dir' " +
-                        "'2nd arg: Path to Neo4j conf file' " +
-                        "'3rd arg: Path to log file' " +
-                        "'4th arg: execution mode (ProposedMethod or Baseline1)' " +
-                        "'5th arg: Max hop' " +
-                        "'6th arg: Target relationship' " +
-                        "'7th arg: Target node's label' ";
+                        "'1st arg: Path to Neo4j DB dir' \n" +
+                        "'2nd arg: Path to Neo4j conf file' \n" +
+                        "'3rd arg: Path to log file' \n" +
+                        "'4th arg: execution mode (ProposedMethod or Baseline1)' \n" +
+                        "'5th arg: Max hop' \n" +
+                        "'6th arg: Target relationship' \n" +
+                        "'7th arg: Target node's label' \n";
         System.err.println(usage);
         System.exit(-1);
 
