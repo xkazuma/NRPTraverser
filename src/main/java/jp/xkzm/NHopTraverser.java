@@ -322,13 +322,18 @@ class NHopTraverser {
 
         String usage =
                 "Usage: mvn exec:java -Dexec.args=\"" +
-                        "'1st arg: Path to Neo4j DB dir' \n" +
-                        "'2nd arg: Path to Neo4j conf file' \n" +
-                        "'3rd arg: Path to log file' \n" +
-                        "'4th arg: execution mode (ProposedMethod or Baseline1)' \n" +
-                        "'5th arg: Max hop' \n" +
-                        "'6th arg: Target relationship' \n" +
-                        "'7th arg: Target node's label' \n";
+                        "\t'1st arg: Path to Neo4j DB dir' \n" +
+                        "\t'2nd arg: Path to Neo4j conf file' \n" +
+                        "\t'3rd arg: Path to log file' \n" +
+                        "\t'4th arg: execution mode (ProposedMethod or Baseline1)' \n" +
+                        "\t'5th arg: min hop' \n" +
+                        "\t'6th arg: max hop' \n" +
+                        "\t'7th arg: Target relationship' \n" +
+                        "\t'8th arg: Target label for nodes' \n" +
+                        "\t'9th arg: a label name for high degree nodes' \n" +
+                        "\t'10th arg: HDN ratio of all nodes' \n" +
+                        "\t'11th arg: boolean-typed value: true is compressed path, false is full path ' \n" +
+                        "\t'12th arg: boolean-typed value: whether or not is to use cypher'\" \n";
         System.err.println(usage);
         System.exit(-1);
 
