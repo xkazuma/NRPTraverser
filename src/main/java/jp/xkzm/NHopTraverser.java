@@ -65,7 +65,7 @@ class NHopTraverser {
 
         try (Transaction tx = neo4j.beginTx()) {
 
-            if (isCompressed) traverseWithoutHDN(tx, hdnLabel, relType, minHop, minHop, byCypher);
+            if (isCompressed) traverseWithoutHDN(tx, hdnLabel, relType, minHop, maxHop, byCypher);
             else              traverse(tx, hdnLabel, relType,  maxHop);
 
         }
@@ -139,7 +139,7 @@ class NHopTraverser {
 
             if (i == minHop) {
 
-                tx.findNodes(Label.label(hdnLabel)).forEachRemaining(hdn -> {
+                tx.findNodes(Label.label(hdnLabel)).stream().spliterator().forEachRemaining(hdn -> {
 
                     tx.traversalDescription()
                             .breadthFirst()
@@ -163,7 +163,7 @@ class NHopTraverser {
                 curr = Set.copyOf(next);
                 next.clear();
 
-                curr.forEach(v -> {
+                curr.stream().spliterator().forEachRemaining(v -> {
 
                     tx.traversalDescription()
                             .breadthFirst()
