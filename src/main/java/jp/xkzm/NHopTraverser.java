@@ -321,7 +321,7 @@ class NHopTraverser {
     private static void printUsage() {
 
         String usage =
-                "Usage: mvn exec:java -Dexec.args=\"" +
+                "Usage: mvn exec:java -Dexec.args=\" \n" +
                         "\t'1st arg: Path to Neo4j DB dir' \n" +
                         "\t'2nd arg: Path to Neo4j conf file' \n" +
                         "\t'3rd arg: Path to log file' \n" +
