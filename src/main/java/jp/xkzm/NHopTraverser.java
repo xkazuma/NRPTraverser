@@ -139,15 +139,15 @@ class NHopTraverser {
 
             if (i == minHop) {
 
-                tx.findNodes(Label.label(hdnLabel)).stream().spliterator().forEachRemaining(hdn -> {
+                tx.findNodes(Label.label(hdnLabel)).forEachRemaining(hdn -> {
 
                     tx.traversalDescription()
                             .breadthFirst()
                             .evaluator(Evaluators.atDepth(1))
-                            .relationships(RelationshipType.withName(relType))
+                            .relationships(RelationshipType.withName(relType), Direction.OUTGOING)
                             .traverse(hdn)
                             .nodes()
-                            .spliterator()
+                            .iterator()
                             .forEachRemaining(node -> {
 
                                 if (node.hasLabel(Label.label(hdnLabel))) skip.add(node.getId());
@@ -163,15 +163,15 @@ class NHopTraverser {
                 curr = Set.copyOf(next);
                 next.clear();
 
-                curr.stream().spliterator().forEachRemaining(v -> {
+                curr.iterator().forEachRemaining(v -> {
 
                     tx.traversalDescription()
                             .breadthFirst()
                             .evaluator(Evaluators.atDepth(1))
-                            .relationships(RelationshipType.withName(relType))
+                            .relationships(RelationshipType.withName(relType), Direction.OUTGOING)
                             .traverse(tx.getNodeById(v))
                             .nodes()
-                            .spliterator()
+                            .iterator()
                             .forEachRemaining(node -> {
 
                                 if (node.hasLabel(Label.label(hdnLabel))) skip.add(node.getId());
