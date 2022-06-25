@@ -144,16 +144,25 @@ class NHopTraverser {
             int         n
     ) {
 
-         Iterable<Node> nodes = tx.traversalDescription()
-                .breadthFirst()
-                .evaluator(Evaluators.atDepth(1))
-                .relationships(RelationshipType.withName(relType))
-                .traverse()
-                .nodes();
+        tx.findNodes(Label.label(hdnLabel)).forEachRemaining(
+                hdn -> {
 
-        nodes.iterator().forEachRemaining(node  -> {
-            logger.info(node.toString());
-        });
+                    logger.info(String.valueOf(hdn.getId()));
+
+                    Iterable<Node> nodes = tx.traversalDescription()
+                            .breadthFirst()
+                            .evaluator(Evaluators.atDepth(1))
+                            .relationships(RelationshipType.withName(relType))
+                            .traverse(hdn)
+                            .nodes();
+
+                    nodes.iterator().forEachRemaining(node  -> {
+                        logger.info(node.toString());
+                    });
+
+                }
+        );
+
 
         return false;
 
