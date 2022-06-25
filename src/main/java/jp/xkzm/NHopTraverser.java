@@ -66,28 +66,42 @@ class NHopTraverser {
         try (Transaction tx = neo4j.beginTx()) {
 
             if (isCompressed) traverseWithoutHDN(tx, hdnLabel, relType, minHop, maxHop, byCypher);
-            else              traverse(tx, hdnLabel, relType,  maxHop);
+            else              traverseFull(tx, hdnLabel, relType,  minHop, maxHop, byCypher);
 
         }
 
     }
 
-    private static void traverse(
+    private static void traverseFull(
             Transaction tx,
             String      hdnLabel,
             String      relType,
-            int         n
+            int         minHop,
+            int         maxHop,
+            boolean     byCypher
+    ) {
+
+        if (byCypher) traverseFullByCypher(tx, hdnLabel, relType, maxHop);
+        else          traverseFullByTraversalAPI(tx, hdnLabel, relType, minHop, maxHop);
+
+    }
+
+    private static void traverseFullByCypher(
+        Transaction tx,
+        String      hdnLabel,
+        String      relType,
+        int         maxHop
     ) {
 
         String match   = String.format(
                 "MATCH (n:%s)-[:%s*%d]->(m) ",
                 hdnLabel,
                 relType,
-                n
+                maxHop
         );
         String return_ = String.format(
                 "RETURN '%d-hop' AS Nhop, '%s' in Labels(m) AS isHDN, COUNT(DISTINCT m) AS cnt;",
-                n,
+                maxHop,
                 hdnLabel
         );
 
@@ -102,6 +116,116 @@ class NHopTraverser {
                     (String)  row.get("Nhop"),
                     (Boolean) row.get("isHDN"),
                     (Long)    row.get("cnt")
+            ));
+
+        }
+
+    }
+
+    private static void traverseFullByTraversalAPI(
+            Transaction tx,
+            String      hdnLabel,
+            String      relType,
+            int         minHop,
+            int         maxHop
+    ) {
+
+        Set<Long> hdnSet = new ConcurrentSkipListSet<>();
+        Set<Long> ldnSet = new ConcurrentSkipListSet<>();
+        Set<Long> next   = new ConcurrentSkipListSet<>();
+        Set<Long> curr   = new ConcurrentSkipListSet<>();
+        long startAtNHop;
+        long endAtNHop;
+        for (int i = minHop; i <= maxHop; i++) {
+
+            startAtNHop = System.nanoTime();
+            if (i == minHop) {
+
+                tx.findNodes(Label.label(hdnLabel)).forEachRemaining(hdn -> {
+
+                    tx.traversalDescription()
+                            .breadthFirst()
+                            .evaluator(Evaluators.atDepth(1))
+                            .relationships(RelationshipType.withName(relType), Direction.OUTGOING)
+                            .traverse(hdn)
+                            .nodes()
+                            .iterator()
+                            .forEachRemaining(node -> {
+
+                                if (node.hasLabel(Label.label(hdnLabel))) {
+
+                                    hdnSet.add(node.getId());
+
+                                } else {
+
+                                    ldnSet.add(node.getId());
+
+                                }
+
+                                next.add(node.getId());
+
+                            });
+
+                });
+
+            } else {
+
+                if (next.size() == 0) break;
+
+                hdnSet.clear();
+                ldnSet.clear();
+                curr = Set.copyOf(next);
+                next.clear();
+
+                curr.iterator().forEachRemaining(v -> {
+
+                    tx.traversalDescription()
+                            .breadthFirst()
+                            .evaluator(Evaluators.atDepth(1))
+                            .relationships(RelationshipType.withName(relType), Direction.OUTGOING)
+                            .traverse(tx.getNodeById(v))
+                            .nodes()
+                            .iterator()
+                            .forEachRemaining(node -> {
+
+                                if (node.hasLabel(Label.label(hdnLabel))) {
+
+                                    hdnSet.add(node.getId());
+
+                                } else {
+
+                                    ldnSet.add(node.getId());
+
+                                }
+
+                                next.add(node.getId());
+
+                            });
+
+                });
+
+            }
+
+            endAtNHop = System.nanoTime();
+
+            logger.info(String.format(
+                    "Nhop: %d\tisHDN: %s\tcnt: %d",
+                    i,
+                    "true",
+                    hdnSet.size()
+            ));
+
+            logger.info(String.format(
+                    "Nhop: %d\tisHDN: %s\tcnt: %d",
+                    i,
+                    "false",
+                    ldnSet.size()
+            ));
+
+            logger.info(String.format(
+                    "Consumed time at %d-hop [msec.]: %f",
+                    i,
+                    (endAtNHop - startAtNHop) / 1000.0 / 1000.
             ));
 
         }
