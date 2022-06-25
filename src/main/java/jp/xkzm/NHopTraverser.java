@@ -12,6 +12,8 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 class NHopTraverser {
 
@@ -36,8 +38,8 @@ class NHopTraverser {
 
         parseArgs(args);
 
-        int     minhop       = Integer.parseInt(minHopStr);
-        int     hop          = Integer.parseInt(maxHopStr);
+        int     minHop       = Integer.parseInt(minHopStr);
+        int     maxHop       = Integer.parseInt(maxHopStr);
         double  hdnRatio     = Double.parseDouble(hdnRatioStr);
         boolean isCompressed = Boolean.parseBoolean(isCompressedStr);
         boolean byCypher     = Boolean.parseBoolean(byCypherStr);
@@ -63,26 +65,8 @@ class NHopTraverser {
 
         try (Transaction tx = neo4j.beginTx()) {
 
-            for (int i = minhop; i <= hop; i++) {
-
-
-                long startAtNHop = System.nanoTime();
-
-                boolean isContinued = true;
-                if (isCompressed) isContinued = traverseWithoutHDN(tx, hdnLabel, relType, i, byCypher);
-                else              traverse(tx, hdnLabel, relType, i);
-
-                long endAtNHop = System.nanoTime();
-
-                logger.info(String.format(
-                        "Consumed time at %d-hop [msec.]: %f",
-                        i,
-                        (endAtNHop - startAtNHop) / 1000.0 / 1000.
-                ));
-
-                if (! isContinued) break;
-
-            }
+            if (isCompressed) traverseWithoutHDN(tx, hdnLabel, relType, minHop, minHop, byCypher);
+            else              traverse(tx, hdnLabel, relType,  maxHop);
 
         }
 
@@ -124,55 +108,113 @@ class NHopTraverser {
 
     }
 
-    private static boolean traverseWithoutHDN(
+    private static void traverseWithoutHDN(
             Transaction tx,
             String      hdnLabel,
             String      relType,
-            int         n,
+            int         minHop,
+            int         maxHop,
             boolean     byCypher
     ) {
 
-        if (byCypher) return traverseWithoutHDNByCypher(tx, hdnLabel, relType, n);
-        else          return traverseWithoutHDNByTraversalAPI(tx, hdnLabel, relType, n);
+        if (byCypher) traverseWithoutHDNByCypher(tx, hdnLabel, relType, minHop, maxHop);
+        else          traverseWithoutHDNByTraversalAPI(tx, hdnLabel, relType, minHop, maxHop);
 
     }
 
-    private static boolean traverseWithoutHDNByTraversalAPI(
+    private static void traverseWithoutHDNByTraversalAPI(
             Transaction tx,
             String      hdnLabel,
             String      relType,
-            int         n
+            int         minHop,
+            int         maxHop
     ) {
 
-        tx.findNodes(Label.label(hdnLabel)).forEachRemaining(
-                hdn -> {
+        Set<Node> skip = new ConcurrentSkipListSet<>();
+        Set<Node> next = new ConcurrentSkipListSet<>();
+        Set<Node> curr = new ConcurrentSkipListSet<>();
+        for (int i = minHop; i <= maxHop; i++) {
 
-                    logger.info(String.valueOf(hdn.getId()));
+            long startAtNHop = System.nanoTime();
 
-                    Iterable<Node> nodes = tx.traversalDescription()
+            if (i == minHop) {
+
+                tx.findNodes(Label.label(hdnLabel)).forEachRemaining(hdn -> {
+
+                    tx.traversalDescription()
                             .breadthFirst()
                             .evaluator(Evaluators.atDepth(1))
                             .relationships(RelationshipType.withName(relType))
                             .traverse(hdn)
-                            .nodes();
+                            .nodes()
+                            .spliterator()
+                            .forEachRemaining(node -> {
 
-                    nodes.iterator().forEachRemaining(node  -> {
-                        logger.info(node.toString());
-                    });
+                                if (node.hasLabel(Label.label(hdnLabel))) skip.add(node);
+                                else                                      next.add(node);
 
-                }
-        );
+                            });
 
+                });
 
-        return false;
+            } else {
+
+                skip.clear();
+                curr = Set.copyOf(next);
+                next.clear();
+
+                curr.forEach(v -> {
+
+                    tx.traversalDescription()
+                            .breadthFirst()
+                            .evaluator(Evaluators.atDepth(1))
+                            .relationships(RelationshipType.withName(relType))
+                            .traverse(v)
+                            .nodes()
+                            .spliterator()
+                            .forEachRemaining(node -> {
+
+                                if (node.hasLabel(Label.label(hdnLabel))) skip.add(node);
+                                else                                      next.add(node);
+
+                            });
+
+                });
+
+            }
+
+            long endAtNHop = System.nanoTime();
+
+            logger.info(String.format(
+                    "Nhop: %d\tisHDN: %s\tcnt: %d",
+                    i,
+                    "true",
+                    skip.size()
+            ));
+
+            logger.info(String.format(
+                    "Nhop: %d\tisHDN: %s\tcnt: %d",
+                    i,
+                    "false",
+                    next.size()
+            ));
+
+            logger.info(String.format(
+                    "Consumed time at %d-hop [msec.]: %f",
+                    i,
+                    (endAtNHop - startAtNHop) / 1000.0 / 1000.
+            ));
+
+        }
 
     }
 
-    private static boolean traverseWithoutHDNByCypher(
+    private static void traverseWithoutHDNByCypher(
             Transaction tx,
             String      hdnLabel,
             String      relType,
-            int         n
+            int         minHop,
+            int         maxHop
     ) {
 
         StringBuilder sb            = new StringBuilder();
@@ -181,91 +223,89 @@ class NHopTraverser {
         String        templateWith  = "WITH '%s' in Labels(%s) AS isHDN%d, %s "; // hdnLabel, m + i, i, m + i
         String        queryVarM     = "m" + 1;
 
-        if (1 < n) {
+        for(int i = minHop; i <= maxHop; i++) {
 
-            sb.append(String.format(
-                    "MATCH (n:%s)-[:%s]->(%s)",
-                    hdnLabel,
-                    relType,
-                    queryVarM
-            ));
-            sb.append(String.format(
-                    templateWith,
-                    hdnLabel,
-                    queryVarM,
-                    1,
-                    queryVarM
-            ));
-
-            String queryVarMNext;
-            for (int i = 2; i <= n; i++) {
-
-                queryVarMNext = "m" + i;
+            if (1 < i) {
 
                 sb.append(String.format(
-                        templateMatch,
-                        queryVarM,
+                        "MATCH (n:%s)-[:%s]->(%s)",
+                        hdnLabel,
                         relType,
-                        queryVarMNext
-                ));
-                sb.append(String.format(
-                        templateWhere,
-                        i - 1
+                        queryVarM
                 ));
                 sb.append(String.format(
                         templateWith,
                         hdnLabel,
-                        queryVarMNext,
-                        i,
-                        queryVarMNext
+                        queryVarM,
+                        1,
+                        queryVarM
                 ));
 
-                queryVarM = queryVarMNext;
+                String queryVarMNext;
+                for (int j = 2; j <= i; j++) {
+
+                    queryVarMNext = "m" + j;
+
+                    sb.append(String.format(
+                            templateMatch,
+                            queryVarM,
+                            relType,
+                            queryVarMNext
+                    ));
+                    sb.append(String.format(
+                            templateWhere,
+                            j - 1
+                    ));
+                    sb.append(String.format(
+                            templateWith,
+                            hdnLabel,
+                            queryVarMNext,
+                            j,
+                            queryVarMNext
+                    ));
+
+                    queryVarM = queryVarMNext;
+
+                }
+
+            } else if (i == 1) {
+
+                queryVarM = "m" + 1;
+                sb.append(String.format(
+                        "MATCH (n:%s)-[:%s]->(%s)",
+                        hdnLabel,
+                        relType,
+                        queryVarM
+                ));
 
             }
 
-        } else if (n == 1) {
-
-            queryVarM = "m" + 1;
             sb.append(String.format(
-                    "MATCH (n:%s)-[:%s]->(%s)",
+                    "RETURN '%d-hop' AS Nhop, '%s' in Labels(%s) AS isHDN, COUNT(DISTINCT %s) AS cnt;",
+                    i,
                     hdnLabel,
-                    relType,
+                    queryVarM,
                     queryVarM
             ));
 
-        }
+            logger.debug(sb.toString());
 
-        sb.append(String.format(
-                "RETURN '%d-hop' AS Nhop, '%s' in Labels(%s) AS isHDN, COUNT(DISTINCT %s) AS cnt;",
-                n,
-                hdnLabel,
-                queryVarM,
-                queryVarM
-        ));
+            Result result = tx.execute(sb.toString());
 
-        logger.debug(sb.toString());
+            while (result.hasNext()) {
 
-        Result result = tx.execute(sb.toString());
+                Map<String, Object> row = result.next();
 
-        int rows = 0;
-        while (result.hasNext()) {
+                logger.info(String.format(
+                        "Nhop: %s\tisHDN: %s\tcnt: %d",
+                        (String) row.get("Nhop"),
+                        (Boolean) row.get("isHDN"),
+                        (Long) row.get("cnt")
+                ));
 
-            rows++;
-
-            Map<String, Object> row = result.next();
-
-            logger.info(String.format(
-                    "Nhop: %s\tisHDN: %s\tcnt: %d",
-                    (String) row.get("Nhop"),
-                    (Boolean) row.get("isHDN"),
-                    (Long) row.get("cnt")
-            ));
+            }
 
         }
-
-        if (rows == 0) return false;
-        else           return true; //continued
 
     }
 
