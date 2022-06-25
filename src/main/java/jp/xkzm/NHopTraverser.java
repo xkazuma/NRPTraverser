@@ -130,9 +130,9 @@ class NHopTraverser {
             int         maxHop
     ) {
 
-        Set<Node> skip = new ConcurrentSkipListSet<>();
-        Set<Node> next = new ConcurrentSkipListSet<>();
-        Set<Node> curr = new ConcurrentSkipListSet<>();
+        Set<Long> skip = new ConcurrentSkipListSet<>();
+        Set<Long> next = new ConcurrentSkipListSet<>();
+        Set<Long> curr = new ConcurrentSkipListSet<>();
         for (int i = minHop; i <= maxHop; i++) {
 
             long startAtNHop = System.nanoTime();
@@ -150,8 +150,8 @@ class NHopTraverser {
                             .spliterator()
                             .forEachRemaining(node -> {
 
-                                if (node.hasLabel(Label.label(hdnLabel))) skip.add(node);
-                                else                                      next.add(node);
+                                if (node.hasLabel(Label.label(hdnLabel))) skip.add(node.getId());
+                                else                                      next.add(node.getId());
 
                             });
 
@@ -169,13 +169,13 @@ class NHopTraverser {
                             .breadthFirst()
                             .evaluator(Evaluators.atDepth(1))
                             .relationships(RelationshipType.withName(relType))
-                            .traverse(v)
+                            .traverse(tx.getNodeById(v))
                             .nodes()
                             .spliterator()
                             .forEachRemaining(node -> {
 
-                                if (node.hasLabel(Label.label(hdnLabel))) skip.add(node);
-                                else                                      next.add(node);
+                                if (node.hasLabel(Label.label(hdnLabel))) skip.add(node.getId());
+                                else                                      next.add(node.getId());
 
                             });
 
