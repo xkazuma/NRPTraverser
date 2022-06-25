@@ -159,6 +159,8 @@ class NHopTraverser {
 
             } else {
 
+                if (next.size() == 0) break;
+
                 skip.clear();
                 curr = Set.copyOf(next);
                 next.clear();
