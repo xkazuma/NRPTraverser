@@ -11,9 +11,11 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.stream.Collectors;
 
 class NHopTraverser {
 
@@ -317,12 +319,24 @@ class NHopTraverser {
                     "true",
                     skip.size()
             ));
+            logger.info(String.format(
+                    "Nhop: %d\tisHDN: %s\tnodes: %s",
+                    i,
+                    "true",
+                    new HashSet<>(skip).toString()
+            ));
 
             logger.info(String.format(
                     "Nhop: %d\tisHDN: %s\tcnt: %d",
                     i,
                     "false",
                     next.size()
+            ));
+            logger.info(String.format(
+                    "Nhop: %d\tisHDN: %s\tcnt: %s",
+                    i,
+                    "false",
+                    new HashSet<>(next).toString()
             ));
 
             logger.info(String.format(
