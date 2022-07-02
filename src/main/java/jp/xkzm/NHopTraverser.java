@@ -319,24 +319,12 @@ class NHopTraverser {
                     "true",
                     skip.size()
             ));
-            logger.info(String.format(
-                    "Nhop: %d\tisHDN: %s\tnodes: %s",
-                    i,
-                    "true",
-                    new HashSet<>(skip).toString()
-            ));
 
             logger.info(String.format(
                     "Nhop: %d\tisHDN: %s\tcnt: %d",
                     i,
                     "false",
                     next.size()
-            ));
-            logger.info(String.format(
-                    "Nhop: %d\tisHDN: %s\tcnt: %s",
-                    i,
-                    "false",
-                    new HashSet<>(next).toString()
             ));
 
             logger.info(String.format(
